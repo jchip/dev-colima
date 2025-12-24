@@ -26,7 +26,7 @@ This setup uses two separate Docker environments:
 
 This separation keeps development experiments isolated from production containers.
 
-Alternatively, you can use multiple Colima profiles and uninstall Docker Desktop entirely.
+Alternatively, you can use multiple Colima profiles and uninstall Docker Desktop entirely (see [Uninstalling Docker Desktop](#uninstalling-docker-desktop)).
 
 ## Prerequisites
 
@@ -354,4 +354,47 @@ colima status --extended
 ```bash
 colima delete
 colima start
+```
+
+## Uninstalling Docker Desktop
+
+If you want to fully switch to Colima and remove Docker Desktop:
+
+### Before Uninstalling
+
+1. Ensure Colima is working:
+   ```bash
+   colima status
+   docker --context colima ps
+   ```
+
+2. Migrate any important containers/volumes from Docker Desktop to Colima
+
+### Uninstall Script
+
+```bash
+./uninstall-docker-desktop.sh
+```
+
+This script will:
+- Quit Docker Desktop if running
+- Remove the Docker Desktop application
+- Remove all Docker Desktop data, containers, images, and volumes
+- Remove Docker Desktop configuration and logs
+- Remove the `/var/run/docker.sock` symlink
+- Set Colima as the default Docker context
+
+### Manual Uninstall
+
+```bash
+# Quit Docker Desktop first, then:
+rm -rf /Applications/Docker.app
+rm -rf ~/Library/Group\ Containers/group.com.docker
+rm -rf ~/Library/Containers/com.docker.docker
+rm -rf ~/Library/Application\ Support/Docker\ Desktop
+rm -rf ~/Library/Preferences/com.docker.docker.plist
+rm -rf ~/Library/Saved\ Application\ State/com.electron.docker-frontend.savedState
+rm -rf ~/Library/Logs/Docker\ Desktop
+sudo rm -f /var/run/docker.sock
+docker context use colima
 ```
