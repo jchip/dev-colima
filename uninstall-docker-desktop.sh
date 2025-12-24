@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 echo "=== Docker Desktop Uninstaller ==="
 echo
 echo "WARNING: This will permanently delete:"
@@ -32,7 +30,7 @@ rm -rf /Applications/Docker.app
 
 echo "Removing Docker data and containers..."
 rm -rf ~/Library/Group\ Containers/group.com.docker
-rm -rf ~/Library/Containers/com.docker.docker
+rm -rf ~/Library/Containers/com.docker.docker 2>/dev/null || echo "  (Some sandbox files skipped - this is normal)"
 
 echo "Removing Docker Desktop support files..."
 rm -rf ~/Library/Application\ Support/Docker\ Desktop
