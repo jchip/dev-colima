@@ -46,3 +46,12 @@ if [[ "$confirm" =~ ^[Yy]$ ]]; then
     echo
     colima list
 fi
+
+echo
+echo "Create /var/run/docker.sock symlink to dev profile? (y/N)"
+echo "This allows 'docker' commands to work without --context"
+read -r symlink_confirm
+if [[ "$symlink_confirm" =~ ^[Yy]$ ]]; then
+    sudo ln -sf ~/.colima/dev/docker.sock /var/run/docker.sock
+    echo "Symlink created. 'docker ps' now uses colima-dev by default."
+fi

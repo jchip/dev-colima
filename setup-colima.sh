@@ -63,5 +63,13 @@ else
 fi
 
 echo
+
+# Create symlink for default context
+if [ ! -L /var/run/docker.sock ]; then
+    echo "Creating /var/run/docker.sock symlink (requires sudo)..."
+    sudo ln -sf ~/.colima/default/docker.sock /var/run/docker.sock
+fi
+
+echo
 echo "=== Setup Complete ==="
 echo "You can now use 'docker' commands."
