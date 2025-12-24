@@ -2,6 +2,19 @@
 
 Colima is a container runtime for macOS that provides Docker compatibility using the macOS Virtualization.Framework.
 
+## Why Colima?
+
+Colima is significantly lighter than Docker Desktop:
+
+| Aspect | Colima | Docker Desktop |
+|--------|--------|----------------|
+| RAM (idle) | ~400-600 MB | ~2-4 GB |
+| CPU (idle) | Minimal | Higher background usage |
+| Startup | ~10 seconds | ~30+ seconds |
+| Background processes | 1 (lima) | Multiple |
+| Virtualization | Native macOS VZ | Custom VM |
+| Updates | `brew upgrade` | Auto-updater, restarts |
+
 ## Dual Docker Environment
 
 This setup uses two separate Docker environments:
@@ -12,6 +25,8 @@ This setup uses two separate Docker environments:
 | Colima | Production | `docker --context colima ...` or Portainer |
 
 This separation keeps development experiments isolated from production containers.
+
+Alternatively, you can use multiple Colima profiles and uninstall Docker Desktop entirely.
 
 ## Prerequisites
 
@@ -80,6 +95,63 @@ Edit configuration:
 
 ```bash
 colima start --edit
+```
+
+## Multiple Profiles
+
+Colima supports multiple isolated profiles. Each profile is a separate VM with its own containers, volumes, and networks.
+
+### Create Profiles
+
+```bash
+colima start                    # Default profile (production)
+colima start --profile dev      # Development profile
+colima start --profile test     # Testing profile
+```
+
+### Manage Profiles
+
+```bash
+colima list                     # List all profiles
+colima stop --profile dev       # Stop dev profile
+colima delete --profile dev     # Delete dev profile
+colima start --profile dev --cpu 4 --memory 8  # Custom resources
+```
+
+### Use Profiles with Docker
+
+Each profile creates a Docker context named `colima-<profile>` (default profile is just `colima`):
+
+```bash
+docker --context colima ps          # Default/production
+docker --context colima-dev ps      # Development
+docker --context colima-test ps     # Testing
+```
+
+### Portainer with Multiple Profiles
+
+Each Portainer instance only sees its own profile. Use different ports:
+
+```bash
+# Production on port 9000
+docker --context colima run -d -p 9000:9000 --name portainer --restart=always \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v portainer_data:/data \
+  portainer/portainer-ce:latest
+
+# Dev on port 9001
+docker --context colima-dev run -d -p 9001:9001 --name portainer --restart=always \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v portainer_data:/data \
+  portainer/portainer-ce:latest --bind=:9001
+```
+
+### Lazydocker with Profiles
+
+```bash
+DOCKER_CONTEXT=colima lazydocker        # Production
+DOCKER_CONTEXT=colima-dev lazydocker    # Development
+DOCKER_CONTEXT=colima-test lazydocker   # Testing
 ```
 
 ## Docker Socket Location
@@ -195,6 +267,65 @@ Key bindings:
 | `l` | View logs |
 | `x` | Open menu |
 | `q` | Quit |
+
+## Docker Compose
+
+Use Docker Compose with Colima for multi-container applications.
+
+### Example docker-compose.yml
+
+```yaml
+services:
+  postgres:
+    image: postgres:16-alpine
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+
+  api:
+    build: ./api
+    depends_on:
+      - postgres
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
+```
+
+### Commands
+
+```bash
+# Start services
+docker --context colima compose up -d
+
+# Stop services
+docker --context colima compose down
+
+# Stop and remove volumes (wipe data)
+docker --context colima compose down -v
+
+# View logs
+docker --context colima compose logs -f
+
+# Rebuild and restart
+docker --context colima compose up -d --build
+```
+
+### Dev Containers (Ephemeral)
+
+For development containers you wipe constantly:
+
+```bash
+# Start dev environment
+docker --context colima-dev compose up -d
+
+# Nuke everything when done
+docker --context colima-dev compose down -v
+```
 
 ## Troubleshooting
 
