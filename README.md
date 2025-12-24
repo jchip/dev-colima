@@ -1,6 +1,12 @@
 # Colima Setup
 
-Colima is a container runtime for macOS that provides Docker compatibility using the macOS Virtualization.Framework.
+Colima is a lightweight container runtime for macOS and Linux that provides Docker compatibility.
+
+| Platform | Virtualization |
+|----------|----------------|
+| macOS | Native Virtualization.Framework |
+| Linux | Native containers (no VM) |
+| Windows | Not supported |
 
 ## Why Colima?
 
@@ -28,8 +34,8 @@ This separation keeps production containers isolated from development experiment
 
 ## Prerequisites
 
-- macOS
-- Homebrew
+- macOS or Linux
+- Homebrew (macOS) or package manager (Linux)
 
 ## Installation
 
