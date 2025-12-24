@@ -26,6 +26,14 @@ else
     echo "Docker CLI is already installed: $(docker --version)"
 fi
 
+# Check and install Docker Compose
+if ! docker compose version &> /dev/null; then
+    echo "Installing Docker Compose..."
+    brew install docker-compose
+else
+    echo "Docker Compose is already installed: $(docker compose version --short)"
+fi
+
 # Check and install Lazydocker
 if ! command -v lazydocker &> /dev/null; then
     echo "Installing Lazydocker..."
