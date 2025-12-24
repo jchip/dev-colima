@@ -46,15 +46,19 @@ Run the setup script:
 ```
 
 This script will:
-- Install Colima and Docker CLI via Homebrew (if not installed)
-- Start Colima if not running
+- Install Colima, Docker CLI, and Lazydocker via Homebrew
+- Create prod and dev profiles
+- Start both profiles
+- Create `/var/run/docker.sock` symlink to dev profile
 - Verify the installation
 
 ## Manual Installation
 
 ```bash
-brew install colima docker
-colima start
+brew install colima docker lazydocker
+colima start --profile prod
+colima start --profile dev
+sudo ln -sf ~/.colima/dev/docker.sock /var/run/docker.sock
 ```
 
 ## Usage

@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 echo "=== Colima Setup Script ==="
 echo
 
@@ -38,38 +36,74 @@ fi
 
 echo
 
-# Check Colima status and start if needed
-if colima status &> /dev/null; then
-    echo "Colima is running"
-    colima status
+# Create prod profile if not exists
+if ! colima status --profile prod &> /dev/null; then
+    echo "Creating prod profile..."
+    colima start --profile prod
 else
-    echo "Colima is not running. Starting..."
-    colima start
-    echo
-    echo "Colima started successfully"
+    echo "Prod profile exists"
+    # Start if not running
+    if ! colima status --profile prod 2>&1 | grep -q "Running"; then
+        echo "Starting prod profile..."
+        colima start --profile prod
+    fi
 fi
+
+# Create dev profile if not exists
+if ! colima status --profile dev &> /dev/null; then
+    echo "Creating dev profile..."
+    colima start --profile dev
+else
+    echo "Dev profile exists"
+    # Start if not running
+    if ! colima status --profile dev 2>&1 | grep -q "Running"; then
+        echo "Starting dev profile..."
+        colima start --profile dev
+    fi
+fi
+
+echo
+echo "=== Profiles ==="
+colima list
+
+echo
+echo "=== Docker Contexts ==="
+docker context ls
 
 echo
 echo "=== Verification ==="
 
 # Verify Docker connection
-if docker info &> /dev/null; then
-    echo "Docker is connected and working"
-    echo
-    docker version --format 'Client: {{.Client.Version}}, Server: {{.Server.Version}}'
+if docker --context colima-dev info &> /dev/null; then
+    echo "Docker (dev) is connected and working"
 else
-    echo "Error: Docker is not responding"
+    echo "Error: Docker (dev) is not responding"
+    exit 1
+fi
+
+if docker --context colima-prod info &> /dev/null; then
+    echo "Docker (prod) is connected and working"
+else
+    echo "Error: Docker (prod) is not responding"
     exit 1
 fi
 
 echo
 
 # Create symlink for default context
-if [ ! -L /var/run/docker.sock ]; then
-    echo "Creating /var/run/docker.sock symlink (requires sudo)..."
-    sudo ln -sf ~/.colima/default/docker.sock /var/run/docker.sock
+if [ ! -L /var/run/docker.sock ] || [ "$(readlink /var/run/docker.sock)" != "$HOME/.colima/dev/docker.sock" ]; then
+    echo "Creating /var/run/docker.sock symlink to dev profile (requires sudo)..."
+    sudo ln -sf ~/.colima/dev/docker.sock /var/run/docker.sock
+    echo "Symlink created. 'docker' commands now use dev profile by default."
+else
+    echo "Socket symlink already configured for dev profile"
 fi
 
 echo
 echo "=== Setup Complete ==="
-echo "You can now use 'docker' commands."
+echo
+echo "Usage:"
+echo "  docker ps                        # Uses dev (default)"
+echo "  docker --context colima-prod ps  # Uses prod"
+echo "  lazydocker                       # TUI for dev"
+echo "  DOCKER_CONTEXT=colima-prod lazydocker  # TUI for prod"
