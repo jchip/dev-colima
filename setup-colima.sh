@@ -1,5 +1,23 @@
 #!/bin/bash
 
+# Options
+INSTALL_PORTAINER=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --portainer)
+            INSTALL_PORTAINER=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--portainer]"
+            exit 1
+            ;;
+    esac
+done
+
 echo "=== Colima Setup Script ==="
 echo
 
@@ -102,6 +120,35 @@ else
     echo "Socket symlink already configured"
 fi
 
+# Install Portainer (optional)
+if [ "$INSTALL_PORTAINER" = true ]; then
+    echo
+    echo "=== Portainer Setup ==="
+    if docker ps -a --format '{{.Names}}' | grep -q "^portainer$"; then
+        echo "Portainer container already exists"
+        if ! docker ps --format '{{.Names}}' | grep -q "^portainer$"; then
+            echo "Starting Portainer..."
+            docker start portainer
+        else
+            echo "Portainer is running"
+        fi
+    else
+        echo "Creating Portainer volume..."
+        docker volume create portainer_data
+        echo "Starting Portainer container..."
+        docker run -d \
+            --name portainer \
+            --restart=always \
+            -p 9000:9000 \
+            -p 9443:9443 \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v portainer_data:/data \
+            portainer/portainer-ce:latest
+        echo "Portainer installed and running"
+    fi
+    echo "Access Portainer at: http://localhost:9000"
+fi
+
 echo
 echo "=== Setup Complete ==="
 echo
@@ -114,3 +161,6 @@ echo "  docker ps                        # Uses dev (default)"
 echo "  docker --context colima-prod ps  # Uses prod"
 echo "  lazydocker                       # TUI for dev"
 echo "  DOCKER_CONTEXT=colima-prod lazydocker  # TUI for prod"
+echo
+echo "Optional:"
+echo "  $0 --portainer    # Install Portainer web UI"
