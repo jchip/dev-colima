@@ -121,6 +121,15 @@ else
     echo "'colima' context already exists"
 fi
 
+# Set colima as the default context
+CURRENT_CONTEXT=$(docker context show 2>/dev/null || echo "")
+if [ "$CURRENT_CONTEXT" != "colima" ]; then
+    echo "Setting 'colima' as the default context..."
+    docker context use colima
+else
+    echo "'colima' is already the default context"
+fi
+
 echo
 echo "=== Verification ==="
 
