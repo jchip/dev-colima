@@ -60,6 +60,24 @@ else
     echo "Lazydocker is already installed: $(lazydocker --version)"
 fi
 
+# Fix Docker credential store if set to docker-credential-desktop
+DOCKER_CONFIG="$HOME/.docker/config.json"
+if [ -f "$DOCKER_CONFIG" ]; then
+    if grep -q '"credsStore".*:.*"desktop"' "$DOCKER_CONFIG"; then
+        echo "Fixing Docker credential store (removing docker-credential-desktop)..."
+        # Use osxkeychain on macOS, or remove credsStore entirely
+        if command -v security &> /dev/null; then
+            # macOS - use osxkeychain
+            sed -i '' 's/"credsStore".*:.*"desktop"/"credsStore": "osxkeychain"/' "$DOCKER_CONFIG"
+            echo "Updated to use osxkeychain credential store"
+        else
+            # Linux or other - remove credsStore line
+            sed -i '' '/"credsStore".*:.*"desktop"/d' "$DOCKER_CONFIG"
+            echo "Removed desktop credential store"
+        fi
+    fi
+fi
+
 echo
 
 # Start default profile (for development)
@@ -175,15 +193,19 @@ if [ "$INSTALL_PORTAINER" = true ]; then
         echo "Creating Portainer volume..."
         docker volume create portainer_data
         echo "Starting Portainer container..."
-        docker run -d \
+        if docker run -d \
             --name portainer \
             --restart=always \
             -p 9000:9000 \
             -p 9443:9443 \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v portainer_data:/data \
-            portainer/portainer-ce:latest
-        echo "Portainer installed and running"
+            portainer/portainer-ce:latest; then
+            echo "Portainer installed and running"
+        else
+            echo "Error: Failed to start Portainer container"
+            exit 1
+        fi
     fi
     echo "Access Portainer at: http://localhost:9000"
 fi
