@@ -27,10 +27,12 @@ This setup uses two isolated Colima profiles (no Docker Desktop required):
 
 | Profile | Context | Purpose | Access |
 |---------|---------|---------|--------|
+| default | `colima` | Development/ephemeral containers | `docker ...` |
 | prod | `colima-prod` | Production/important containers | `docker --context colima-prod ...` |
-| dev | `colima-dev` | Development/ephemeral containers | `docker ...` (default) |
 
 This separation keeps production containers isolated from development experiments.
+
+Using `default` for development means `colima start` always works without breaking the dev environment.
 
 ## Prerequisites
 
@@ -56,9 +58,9 @@ This script will:
 
 ```bash
 brew install colima docker docker-compose lazydocker
-colima start --profile prod
-colima start --profile dev
-sudo ln -sf ~/.colima/dev/docker.sock /var/run/docker.sock
+colima start                   # Default profile (dev)
+colima start --profile prod    # Prod profile
+sudo ln -sf ~/.colima/default/docker.sock /var/run/docker.sock
 ```
 
 ## Usage
@@ -165,20 +167,18 @@ DOCKER_CONTEXT=colima-test lazydocker   # Testing
 
 | Profile | Socket |
 |---------|--------|
+| default | `~/.colima/default/docker.sock` |
 | prod | `~/.colima/prod/docker.sock` |
-| dev | `~/.colima/dev/docker.sock` |
-| default | `/var/run/docker.sock` (symlink) |
 
 ### Default Socket Symlink
 
 To use `docker` commands without specifying `--context`, create a symlink:
 
 ```bash
-# Make dev profile the default
-sudo ln -sf ~/.colima/dev/docker.sock /var/run/docker.sock
+sudo ln -sf ~/.colima/default/docker.sock /var/run/docker.sock
 ```
 
-The `create-profiles.sh` script offers to create this symlink automatically.
+The `setup-colima.sh` script creates this symlink automatically.
 
 ## Docker Contexts
 
@@ -188,9 +188,9 @@ Docker CLI uses contexts to switch between different Docker daemons.
 
 | Context | Endpoint | Description |
 |---------|----------|-------------|
+| `colima` | `~/.colima/default/docker.sock` | Development (default profile) |
 | `colima-prod` | `~/.colima/prod/docker.sock` | Production profile |
-| `colima-dev` | `~/.colima/dev/docker.sock` | Development profile |
-| `default` | `/var/run/docker.sock` | Symlink to dev profile |
+| `default` | `/var/run/docker.sock` | Symlink to default profile |
 
 ### View Contexts
 
@@ -203,8 +203,8 @@ The active context is marked with `*`.
 ### Switch Active Context
 
 ```bash
-docker context use colima-dev   # Use development
-docker context use colima-prod  # Use production
+docker context use colima        # Use development (default)
+docker context use colima-prod   # Use production
 ```
 
 ### Target Specific Context Without Switching
@@ -214,17 +214,17 @@ docker context use colima-prod  # Use production
 docker --context colima-prod ps
 docker --context colima-prod logs <container>
 
-# Run commands on development
-docker --context colima-dev ps
-docker --context colima-dev run ...
+# Run commands on development (default)
+docker ps
+docker run ...
 ```
 
 ### Recommended Setup
 
-With the symlink in place, `docker` commands use dev by default:
+With the symlink in place, `docker` commands use default profile:
 
 ```bash
-docker ps                        # Uses dev (via symlink)
+docker ps                        # Uses default (dev)
 docker --context colima-prod ps  # Uses production
 ```
 
@@ -270,8 +270,8 @@ lazydocker
 Run for specific context:
 
 ```bash
+lazydocker                             # Development (default)
 DOCKER_CONTEXT=colima-prod lazydocker  # Production
-DOCKER_CONTEXT=colima-dev lazydocker   # Development
 ```
 
 Key bindings:
@@ -355,8 +355,8 @@ docker context ls              # Docker contexts
 ### Restart Profiles
 
 ```bash
-colima stop --profile prod && colima start --profile prod
-colima stop --profile dev && colima start --profile dev
+colima stop && colima start                                  # Default (dev)
+colima stop --profile prod && colima start --profile prod    # Prod
 ```
 
 ### View Logs
@@ -368,8 +368,11 @@ colima status --extended
 ### Reset a Profile
 
 ```bash
-colima delete --profile dev
-colima start --profile dev
+# Reset default (dev)
+colima delete && colima start
+
+# Reset prod
+colima delete --profile prod && colima start --profile prod
 ```
 
 ## Uninstalling Docker Desktop
@@ -378,15 +381,15 @@ If you have Docker Desktop installed and want to fully switch to Colima:
 
 ### Before Uninstalling
 
-1. Create Colima profiles:
+1. Run setup script:
    ```bash
-   ./create-profiles.sh
+   ./setup-colima.sh
    ```
 
 2. Verify Colima is working:
    ```bash
    colima list
-   docker --context colima-prod ps
+   docker ps
    ```
 
 3. Migrate any important containers/volumes from Docker Desktop
@@ -408,7 +411,7 @@ This script will:
 Create the default socket symlink:
 
 ```bash
-sudo ln -sf ~/.colima/dev/docker.sock /var/run/docker.sock
+sudo ln -sf ~/.colima/default/docker.sock /var/run/docker.sock
 ```
 
 ### Manual Uninstall
@@ -423,6 +426,6 @@ rm -rf ~/Library/Preferences/com.docker.docker.plist
 rm -rf ~/Library/Saved\ Application\ State/com.electron.docker-frontend.savedState
 rm -rf ~/Library/Logs/Docker\ Desktop
 
-# Create symlink to dev profile
-sudo ln -sf ~/.colima/dev/docker.sock /var/run/docker.sock
+# Create symlink to default profile
+sudo ln -sf ~/.colima/default/docker.sock /var/run/docker.sock
 ```

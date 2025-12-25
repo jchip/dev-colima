@@ -44,6 +44,14 @@ fi
 
 echo
 
+# Start default profile (for development)
+if ! colima status &> /dev/null; then
+    echo "Starting default profile (dev)..."
+    colima start
+else
+    echo "Default profile (dev) is running"
+fi
+
 # Create prod profile if not exists
 if ! colima status --profile prod &> /dev/null; then
     echo "Creating prod profile..."
@@ -54,19 +62,6 @@ else
     if ! colima status --profile prod 2>&1 | grep -q "Running"; then
         echo "Starting prod profile..."
         colima start --profile prod
-    fi
-fi
-
-# Create dev profile if not exists
-if ! colima status --profile dev &> /dev/null; then
-    echo "Creating dev profile..."
-    colima start --profile dev
-else
-    echo "Dev profile exists"
-    # Start if not running
-    if ! colima status --profile dev 2>&1 | grep -q "Running"; then
-        echo "Starting dev profile..."
-        colima start --profile dev
     fi
 fi
 
@@ -82,10 +77,10 @@ echo
 echo "=== Verification ==="
 
 # Verify Docker connection
-if docker --context colima-dev info &> /dev/null; then
-    echo "Docker (dev) is connected and working"
+if docker --context colima info &> /dev/null; then
+    echo "Docker (dev/default) is connected and working"
 else
-    echo "Error: Docker (dev) is not responding"
+    echo "Error: Docker (dev/default) is not responding"
     exit 1
 fi
 
@@ -99,16 +94,20 @@ fi
 echo
 
 # Create symlink for default context
-if [ ! -L /var/run/docker.sock ] || [ "$(readlink /var/run/docker.sock)" != "$HOME/.colima/dev/docker.sock" ]; then
-    echo "Creating /var/run/docker.sock symlink to dev profile (requires sudo)..."
-    sudo ln -sf ~/.colima/dev/docker.sock /var/run/docker.sock
-    echo "Symlink created. 'docker' commands now use dev profile by default."
+if [ ! -L /var/run/docker.sock ] || [ "$(readlink /var/run/docker.sock)" != "$HOME/.colima/default/docker.sock" ]; then
+    echo "Creating /var/run/docker.sock symlink to default profile (requires sudo)..."
+    sudo ln -sf ~/.colima/default/docker.sock /var/run/docker.sock
+    echo "Symlink created."
 else
-    echo "Socket symlink already configured for dev profile"
+    echo "Socket symlink already configured"
 fi
 
 echo
 echo "=== Setup Complete ==="
+echo
+echo "Profiles:"
+echo "  default  = Development (colima start)"
+echo "  prod     = Production  (colima start --profile prod)"
 echo
 echo "Usage:"
 echo "  docker ps                        # Uses dev (default)"
