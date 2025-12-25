@@ -92,6 +92,36 @@ echo "=== Docker Contexts ==="
 docker context ls
 
 echo
+echo "=== Fixing Docker Contexts ==="
+
+# Get current default context endpoint
+DEFAULT_ENDPOINT=$(docker context inspect default -f '{{.Endpoints.docker.Host}}' 2>/dev/null || echo "")
+
+# Check if the endpoint exists
+if [ -n "$DEFAULT_ENDPOINT" ]; then
+    # Extract socket path from unix:// endpoint
+    SOCKET_PATH="${DEFAULT_ENDPOINT#unix://}"
+    if [ ! -S "$SOCKET_PATH" ]; then
+        echo "Default context endpoint doesn't exist: $SOCKET_PATH"
+        echo "Updating default context to point to Colima default..."
+        docker context update default --docker "host=unix://$HOME/.colima/default/docker.sock"
+    else
+        echo "Default context endpoint exists: $SOCKET_PATH"
+    fi
+else
+    echo "Updating default context to point to Colima default..."
+    docker context update default --docker "host=unix://$HOME/.colima/default/docker.sock"
+fi
+
+# Check if colima context exists, create if not
+if ! docker context inspect colima &> /dev/null; then
+    echo "Creating 'colima' context for default profile..."
+    docker context create colima --docker "host=unix://$HOME/.colima/default/docker.sock"
+else
+    echo "'colima' context already exists"
+fi
+
+echo
 echo "=== Verification ==="
 
 # Verify Docker connection
